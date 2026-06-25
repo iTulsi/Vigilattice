@@ -9,6 +9,7 @@ description = "Adversarial evaluation infrastructure for autonomous AI agents"
 requires-python = ">=3.11,<3.15"
 dependencies = [
   "fastapi[standard]>=0.115,<1.0",
+  "httpx>=0.28,<1.0",
   "pydantic>=2.10,<3.0",
   "pydantic-settings>=2.7,<3.0",
   "PyYAML>=6.0,<7.0",
