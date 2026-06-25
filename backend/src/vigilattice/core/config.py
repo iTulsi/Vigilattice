@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     cors_origins: list[str] = ["http://localhost:5173"]
     scenario_directory: Path = Path(__file__).resolve().parents[1] / "scenarios" / "builtin"
+    run_database_path: Path = Path(__file__).resolve().parents[3] / "data" / "vigilattice.db"
 
 
 @lru_cache

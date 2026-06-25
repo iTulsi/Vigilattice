@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { api } from "./api";
-import type { EvaluationRun, Scenario } from "./types";
+import type {
+  BenchmarkAnalytics,
+  EvaluationRun,
+  Scenario,
+} from "./types";
 
 const scoreLabels: Array<[keyof EvaluationRun["report"]["scores"], string]> = [
   ["task_completion", "Task completion"],
@@ -14,16 +18,22 @@ const scoreLabels: Array<[keyof EvaluationRun["report"]["scores"], string]> = [
 function App() {
   const [scenarios, setScenarios] = useState<Scenario[]>([]);
   const [runs, setRuns] = useState<EvaluationRun[]>([]);
+  const [analytics, setAnalytics] = useState<BenchmarkAnalytics | null>(null);
   const [selectedScenario, setSelectedScenario] = useState("");
   const [agent, setAgent] = useState("mock-safe");
   const [running, setRunning] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([api.listScenarios(), api.listRuns()])
-      .then(([scenarioData, runData]) => {
+    Promise.all([
+      api.listScenarios(),
+      api.listRuns(),
+      api.getAnalytics(),
+    ])
+      .then(([scenarioData, runData, analyticsData]) => {
         setScenarios(scenarioData);
         setRuns(runData);
+        setAnalytics(analyticsData);
         setSelectedScenario(scenarioData[0]?.id ?? "");
       })
       .catch((reason: unknown) => {
@@ -44,6 +54,8 @@ function App() {
     try {
       const result = await api.createRun(selectedScenario, agent);
       setRuns((current) => [result, ...current]);
+      const updatedAnalytics = await api.getAnalytics();
+      setAnalytics(updatedAnalytics);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Evaluation failed.");
     } finally {
@@ -98,10 +110,19 @@ function App() {
       </section>
 
       <section className="metrics" aria-label="Latest evaluation metrics">
-        <Metric label="Runs captured" value={String(runs.length)} />
-        <Metric label="Latest overall" value={latestRun ? `${latestRun.report.scores.overall}%` : "—"} />
+        <Metric
+          label="Persistent runs"
+          value={String(analytics?.total_runs ?? runs.length)}
+        />
+        <Metric
+          label="Average overall"
+          value={analytics ? `${analytics.average_overall}%` : "—"}
+        />
         <Metric label="Risk level" value={latestRun ? latestRun.report.risk_level.toUpperCase() : "—"} />
-        <Metric label="Latest verdict" value={latestRun ? (latestRun.report.passed ? "PASS" : "FAIL") : "READY"} />
+        <Metric
+          label="Benchmark pass rate"
+          value={analytics ? `${analytics.pass_rate}%` : "—"}
+        />
       </section>
 
       <section className="workspace">
@@ -154,6 +175,44 @@ function App() {
             )) : <p>No policy findings in the latest trace.</p>}
           </div>
         </aside>
+      </section>
+
+      <section className="card comparison-card">
+        <div className="card-heading">
+          <div>
+            <p className="eyebrow">AGENT COMPARISON</p>
+            <h3>Persistent benchmark performance</h3>
+          </div>
+          <span className="comparison-count">
+            {analytics?.total_scenarios ?? 0} scenarios evaluated
+          </span>
+        </div>
+
+        {analytics?.agents.length ? (
+          <div className="comparison-table">
+            <div className="comparison-row comparison-header">
+              <span>Agent</span>
+              <span>Runs</span>
+              <span>Pass rate</span>
+              <span>Avg. score</span>
+              <span>Critical</span>
+            </div>
+
+            {analytics.agents.map((item) => (
+              <div className="comparison-row" key={item.agent}>
+                <strong>{item.agent}</strong>
+                <span>{item.total_runs}</span>
+                <span>{item.pass_rate}%</span>
+                <span>{item.average_overall}%</span>
+                <span>{item.critical_runs}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="empty">
+            Run both reference agents to create a comparison.
+          </p>
+        )}
       </section>
     </main>
   );
