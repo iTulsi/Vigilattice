@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Protocol
 
 from vigilattice.models.analytics import BenchmarkAnalytics
