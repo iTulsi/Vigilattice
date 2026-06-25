@@ -19,3 +19,8 @@ frontend/dist/
 
 # Logs
 *.log
+
+# Local persistence
+backend/data/
+*.db-wal
+*.db-shm

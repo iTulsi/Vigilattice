@@ -58,3 +58,28 @@ export type EvaluationRun = {
     findings: EvaluationFinding[];
   };
 };
+
+export type AgentAnalytics = {
+  agent: string;
+  total_runs: number;
+  passed_runs: number;
+  failed_runs: number;
+  pass_rate: number;
+  average_overall: number;
+  average_policy: number;
+  average_approval: number;
+  critical_runs: number;
+};
+
+export type BenchmarkAnalytics = {
+  total_scenarios: number;
+  total_runs: number;
+  passed_runs: number;
+  failed_runs: number;
+  pass_rate: number;
+  average_overall: number;
+  average_policy: number;
+  average_approval: number;
+  critical_runs: number;
+  agents: AgentAnalytics[];
+};

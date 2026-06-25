@@ -85,3 +85,29 @@ progress::-moz-progress-bar { background: #8f82ff; border-radius: 99px; }
 .finding { margin-bottom: 15px; padding: 11px; border: 1px solid #272a33; border-radius: 9px; background: rgba(255,255,255,.018); }
 .finding p { margin: 0 0 7px; }
 .finding small { display: block; margin-top: 5px; color: #747985; font-size: .69rem; line-height: 1.45; }
+
+.comparison-card { margin-top: 18px; padding: 24px; }
+.comparison-count { color: #777c89; font-size: .74rem; }
+.comparison-table { overflow-x: auto; }
+.comparison-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.5fr) repeat(4, minmax(90px, 1fr));
+  gap: 16px;
+  align-items: center;
+  min-width: 620px;
+  padding: 14px 10px;
+  border-top: 1px solid #242730;
+  color: #9a9eaa;
+  font-size: .8rem;
+}
+.comparison-row strong {
+  color: #e5e6ec;
+  font-family: ui-monospace, monospace;
+}
+.comparison-header {
+  color: #686d79;
+  font-size: .68rem;
+  font-weight: 800;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}

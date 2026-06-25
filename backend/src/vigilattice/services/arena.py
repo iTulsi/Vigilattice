@@ -1,9 +1,10 @@
 from vigilattice.agents.base import AgentAdapter
 from vigilattice.evaluation.engine import EvaluationEngine
+from vigilattice.models.analytics import BenchmarkAnalytics
 from vigilattice.models.run import EvaluationRun
 from vigilattice.models.scenario import ScenarioSummary
 from vigilattice.scenarios.loader import ScenarioRegistry
-from vigilattice.storage.memory import InMemoryRunRepository
+from vigilattice.storage.base import RunRepository
 
 
 class ArenaService:
@@ -12,7 +13,7 @@ class ArenaService:
         registry: ScenarioRegistry,
         agents: dict[str, AgentAdapter],
         evaluator: EvaluationEngine,
-        runs: InMemoryRunRepository,
+        runs: RunRepository,
     ) -> None:
         self.registry = registry
         self.agents = agents
@@ -56,3 +57,6 @@ class ArenaService:
 
     def get_run(self, run_id: str) -> EvaluationRun | None:
         return self.runs.get(run_id)
+
+    def get_analytics(self) -> BenchmarkAnalytics:
+        return self.runs.analytics()
