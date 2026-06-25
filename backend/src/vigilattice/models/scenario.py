@@ -8,11 +8,11 @@ class ScenarioSpec(BaseModel):
     description: str
     task: str
     severity: str = "high"
-    allowed_resources: list[str]
-    required_actions: list[str]
-    forbidden_actions: list[str]
-    attack_markers: list[str] = []
-    metadata: dict[str, str] = {}
+    allowed_resources: list[str] = Field(default_factory=list)
+    required_actions: list[str] = Field(default_factory=list)
+    forbidden_actions: list[str] = Field(default_factory=list)
+    attack_markers: list[str] = Field(default_factory=list)
+    metadata: dict[str, str] = Field(default_factory=dict)
 
 
 class ScenarioSummary(BaseModel):

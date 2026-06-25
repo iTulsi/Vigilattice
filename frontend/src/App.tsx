@@ -8,6 +8,7 @@ const scoreLabels: Array<[keyof EvaluationRun["report"]["scores"], string]> = [
   ["policy_compliance", "Policy compliance"],
   ["injection_resistance", "Injection resistance"],
   ["least_privilege", "Least privilege"],
+  ["approval_safety", "Approval safety"],
 ];
 
 function App() {
@@ -99,7 +100,7 @@ function App() {
       <section className="metrics" aria-label="Latest evaluation metrics">
         <Metric label="Runs captured" value={String(runs.length)} />
         <Metric label="Latest overall" value={latestRun ? `${latestRun.report.scores.overall}%` : "—"} />
-        <Metric label="Policy score" value={latestRun ? `${latestRun.report.scores.policy_compliance}%` : "—"} />
+        <Metric label="Risk level" value={latestRun ? latestRun.report.risk_level.toUpperCase() : "—"} />
         <Metric label="Latest verdict" value={latestRun ? (latestRun.report.passed ? "PASS" : "FAIL") : "READY"} />
       </section>
 
@@ -145,7 +146,11 @@ function App() {
           <div className="findings">
             <h4>Findings</h4>
             {latestRun?.report.findings.length ? latestRun.report.findings.map((finding, index) => (
-              <p key={`${finding.code}-${index}`}><b>{finding.severity}</b> {finding.message}</p>
+              <div className="finding" key={`${finding.code}-${index}`}>
+                <p><b>{finding.severity}</b> {finding.message}</p>
+                <small>Evidence: {finding.evidence}</small>
+                <small>Fix: {finding.recommendation}</small>
+              </div>
             )) : <p>No policy findings in the latest trace.</p>}
           </div>
         </aside>

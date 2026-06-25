@@ -81,3 +81,7 @@ progress::-moz-progress-bar { background: #8f82ff; border-radius: 99px; }
   .metric:nth-child(2) { border-right: 0; }
   .metric:nth-child(-n+2) { border-bottom: 1px solid #252830; }
 }
+
+.finding { margin-bottom: 15px; padding: 11px; border: 1px solid #272a33; border-radius: 9px; background: rgba(255,255,255,.018); }
+.finding p { margin: 0 0 7px; }
+.finding small { display: block; margin-top: 5px; color: #747985; font-size: .69rem; line-height: 1.45; }
