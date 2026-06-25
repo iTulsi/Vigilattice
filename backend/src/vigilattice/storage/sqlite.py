@@ -3,6 +3,7 @@ from pathlib import Path
 from threading import RLock
 
 from vigilattice.models.analytics import AgentAnalytics, BenchmarkAnalytics
+from vigilattice.models.batch import BenchmarkBatch
 from vigilattice.models.run import EvaluationRun
 
 
@@ -52,6 +53,27 @@ class SQLiteRunRepository:
                 """
                 CREATE INDEX IF NOT EXISTS idx_evaluation_runs_agent
                 ON evaluation_runs(agent)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS benchmark_batches (
+                    id TEXT PRIMARY KEY,
+                    agent TEXT NOT NULL,
+                    started_at TEXT NOT NULL,
+                    completed_at TEXT NOT NULL,
+                    duration_ms INTEGER NOT NULL,
+                    total_scenarios INTEGER NOT NULL,
+                    passed_runs INTEGER NOT NULL,
+                    average_overall REAL NOT NULL,
+                    payload_json TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_benchmark_batches_started_at
+                ON benchmark_batches(started_at DESC)
                 """
             )
 
@@ -118,6 +140,62 @@ class SQLiteRunRepository:
             ).fetchall()
 
         return [EvaluationRun.model_validate_json(row["payload_json"]) for row in rows]
+
+    def save_batch(self, batch: BenchmarkBatch) -> BenchmarkBatch:
+        with self._lock, self._connect() as connection:
+            connection.execute(
+                """
+                INSERT OR REPLACE INTO benchmark_batches (
+                    id,
+                    agent,
+                    started_at,
+                    completed_at,
+                    duration_ms,
+                    total_scenarios,
+                    passed_runs,
+                    average_overall,
+                    payload_json
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    batch.id,
+                    batch.agent,
+                    batch.started_at.isoformat(),
+                    batch.completed_at.isoformat(),
+                    batch.duration_ms,
+                    batch.summary.total_scenarios,
+                    batch.summary.passed_runs,
+                    batch.summary.average_overall,
+                    batch.model_dump_json(),
+                ),
+            )
+        return batch
+
+    def get_batch(self, batch_id: str) -> BenchmarkBatch | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT payload_json
+                FROM benchmark_batches
+                WHERE id = ?
+                """,
+                (batch_id,),
+            ).fetchone()
+        if row is None:
+            return None
+        return BenchmarkBatch.model_validate_json(row["payload_json"])
+
+    def list_batches(self) -> list[BenchmarkBatch]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT payload_json
+                FROM benchmark_batches
+                ORDER BY started_at DESC, id DESC
+                """
+            ).fetchall()
+        return [BenchmarkBatch.model_validate_json(row["payload_json"]) for row in rows]
 
     def analytics(self) -> BenchmarkAnalytics:
         with self._connect() as connection:

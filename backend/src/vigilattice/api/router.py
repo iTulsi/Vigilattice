@@ -1,6 +1,12 @@
 from fastapi import APIRouter
 
-from vigilattice.api.routes import analytics, health, runs, scenarios
+from vigilattice.api.routes import (
+    analytics,
+    batches,
+    health,
+    runs,
+    scenarios,
+)
 
 api_router = APIRouter()
 api_router.include_router(health.router, tags=["system"])
@@ -10,4 +16,9 @@ api_router.include_router(
     analytics.router,
     prefix="/analytics",
     tags=["analytics"],
+)
+api_router.include_router(
+    batches.router,
+    prefix="/batches",
+    tags=["batches"],
 )

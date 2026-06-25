@@ -1,6 +1,7 @@
 from typing import Protocol
 
 from vigilattice.models.analytics import BenchmarkAnalytics
+from vigilattice.models.batch import BenchmarkBatch
 from vigilattice.models.run import EvaluationRun
 
 
@@ -16,3 +17,12 @@ class RunRepository(Protocol):
 
     def analytics(self) -> BenchmarkAnalytics:
         """Return aggregate benchmark and agent statistics."""
+
+    def save_batch(self, batch: BenchmarkBatch) -> BenchmarkBatch:
+        """Persist a complete benchmark batch."""
+
+    def get_batch(self, batch_id: str) -> BenchmarkBatch | None:
+        """Return one benchmark batch when it exists."""
+
+    def list_batches(self) -> list[BenchmarkBatch]:
+        """Return benchmark batches in reverse chronological order."""
