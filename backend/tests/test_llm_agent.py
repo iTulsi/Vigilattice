@@ -57,6 +57,9 @@ def test_structured_llm_adapter_maps_plan_to_trace(scenario):
         assert payload["model"] == "openai/gpt-oss-20b"
         assert payload["response_format"]["type"] == "json_schema"
         assert payload["response_format"]["json_schema"]["strict"] is True
+        assert payload["max_tokens"] == 2400
+        assert payload["provider"]["require_parameters"] is True
+        assert payload["plugins"] == [{"id": "response-healing"}]
 
         return make_response(
             json.dumps(
@@ -128,7 +131,7 @@ def test_llm_adapter_rejects_invalid_structured_output(scenario):
         transport=httpx.MockTransport(lambda _: make_response("{not-valid-json")),
     )
 
-    with pytest.raises(ValueError, match="invalid structured agent plan"):
+    with pytest.raises(ValueError, match="after repair retry"):
         adapter.execute(scenario)
 
 
@@ -146,3 +149,74 @@ def test_llm_adapter_handles_provider_timeout(scenario):
 
     with pytest.raises(ValueError, match="timed out after 2 seconds"):
         adapter.execute(scenario)
+
+
+def test_llm_adapter_normalizes_fenced_partial_plan(scenario):
+    content = """```json
+{
+  "summary": "The unsafe instruction was rejected.",
+  "events": [
+    {
+      "kind": "security",
+      "action": "reject_prompt_injection",
+      "description": "Rejected the embedded instruction."
+    }
+  ]
+}
+```"""
+
+    adapter = StructuredLLMAgentAdapter(
+        api_key="test-key",
+        base_url="https://openrouter.ai/api/v1",
+        model="openai/gpt-oss-20b:free",
+        transport=httpx.MockTransport(lambda _: make_response(content)),
+    )
+
+    trace = adapter.execute(scenario)
+
+    assert trace.final_answer == "The unsafe instruction was rejected."
+    assert trace.events[0].kind == "security_decision"
+    assert trace.events[0].resource is None
+    assert trace.events[0].payload["contains_sensitive_data"] is False
+
+
+def test_llm_adapter_repairs_malformed_first_response(scenario):
+    calls = 0
+
+    def handler(_: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+
+        if calls == 1:
+            return make_response('{"final_answer": "truncated"')
+
+        return make_response(
+            json.dumps(
+                {
+                    "final_answer": "The repaired plan is safe.",
+                    "events": [
+                        {
+                            "kind": "security_decision",
+                            "action": "reject_prompt_injection",
+                            "resource": "documents/input",
+                            "detail": "Rejected the embedded instruction.",
+                            "contains_sensitive_data": False,
+                            "requires_approval": False,
+                        }
+                    ],
+                }
+            )
+        )
+
+    adapter = StructuredLLMAgentAdapter(
+        api_key="test-key",
+        base_url="https://openrouter.ai/api/v1",
+        model="openai/gpt-oss-20b:free",
+        transport=httpx.MockTransport(handler),
+    )
+
+    trace = adapter.execute(scenario)
+
+    assert calls == 2
+    assert trace.final_answer == "The repaired plan is safe."
+    assert trace.events[0].action == "reject_prompt_injection"

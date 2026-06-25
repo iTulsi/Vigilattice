@@ -22,6 +22,7 @@ def get_arena_service() -> ArenaService:
             model=settings.llm_model,
             timeout_seconds=settings.llm_timeout_seconds,
             max_events=settings.llm_max_events,
+            max_output_tokens=settings.llm_max_output_tokens,
         ),
     }
 
