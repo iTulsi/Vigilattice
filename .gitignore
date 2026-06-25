@@ -24,3 +24,6 @@ frontend/dist/
 backend/data/
 *.db-wal
 *.db-shm
+
+# Python package metadata
+*.egg-info/
