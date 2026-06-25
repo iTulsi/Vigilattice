@@ -1,12 +1,16 @@
+from __future__ import annotations
+
 from threading import RLock
 
 from vigilattice.models.analytics import AgentAnalytics, BenchmarkAnalytics
+from vigilattice.models.batch import BenchmarkBatch
 from vigilattice.models.run import EvaluationRun
 
 
 class InMemoryRunRepository:
     def __init__(self) -> None:
         self._runs: dict[str, EvaluationRun] = {}
+        self._batches: dict[str, BenchmarkBatch] = {}
         self._lock = RLock()
 
     def save(self, run: EvaluationRun) -> EvaluationRun:
@@ -23,6 +27,23 @@ class InMemoryRunRepository:
             return sorted(
                 self._runs.values(),
                 key=lambda run: run.created_at,
+                reverse=True,
+            )
+
+    def save_batch(self, batch: BenchmarkBatch) -> BenchmarkBatch:
+        with self._lock:
+            self._batches[batch.id] = batch
+        return batch
+
+    def get_batch(self, batch_id: str) -> BenchmarkBatch | None:
+        with self._lock:
+            return self._batches.get(batch_id)
+
+    def list_batches(self) -> list[BenchmarkBatch]:
+        with self._lock:
+            return sorted(
+                self._batches.values(),
+                key=lambda batch: batch.started_at,
                 reverse=True,
             )
 
