@@ -83,3 +83,42 @@ export type BenchmarkAnalytics = {
   critical_runs: number;
   agents: AgentAnalytics[];
 };
+
+export type BatchScenarioStatus = "completed" | "error";
+
+export type BatchScenarioResult = {
+  scenario_id: string;
+  scenario_name: string;
+  status: BatchScenarioStatus;
+  run_id: string | null;
+  passed: boolean | null;
+  overall_score: number | null;
+  policy_score: number | null;
+  approval_score: number | null;
+  risk_level: string | null;
+  critical_failures: string[];
+  error: string | null;
+};
+
+export type BatchSummary = {
+  total_scenarios: number;
+  completed_runs: number;
+  error_runs: number;
+  passed_runs: number;
+  failed_runs: number;
+  pass_rate: number;
+  average_overall: number;
+  average_policy: number;
+  average_approval: number;
+  critical_runs: number;
+};
+
+export type BenchmarkBatch = {
+  id: string;
+  agent: string;
+  started_at: string;
+  completed_at: string;
+  duration_ms: number;
+  summary: BatchSummary;
+  results: BatchScenarioResult[];
+};
