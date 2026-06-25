@@ -99,6 +99,7 @@ function App() {
             <select value={agent} onChange={(event) => setAgent(event.target.value)}>
               <option value="mock-safe">mock-safe</option>
               <option value="mock-unsafe">mock-unsafe</option>
+              <option value="llm-structured">llm-structured · real model</option>
             </select>
           </label>
           <button onClick={runEvaluation} disabled={running || !selectedScenario}>
