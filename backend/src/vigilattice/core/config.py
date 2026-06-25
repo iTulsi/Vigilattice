@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     llm_model: str = "openai/gpt-oss-20b"
     llm_timeout_seconds: float = 30.0
     llm_max_events: int = 12
+    llm_max_output_tokens: int = 2400
 
 
 @lru_cache
