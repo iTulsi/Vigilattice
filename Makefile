@@ -1,4 +1,4 @@
-.PHONY: bootstrap dev api web test lint format build regression-gate clean
+.PHONY: bootstrap dev api web test lint format build regression-gate smoke-production clean
 
 bootstrap:
 	./scripts/bootstrap.sh
@@ -33,6 +33,9 @@ regression-gate:
 	cd backend && .venv/bin/python -m vigilattice.regression_gate \
 		--baseline baselines/mock-safe.json \
 		--output /tmp/vigilattice-regression-gate-report.json
+
+smoke-production:
+	./scripts/smoke_production_start.sh
 
 clean:
 	rm -rf backend/.venv backend/.pytest_cache backend/.ruff_cache frontend/node_modules frontend/dist

@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: vigilattice-api-itulsi
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -e .
+    startCommand: fastapi run src/vigilattice/main.py --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/ready
+    envVars:
+      - key: VIGILATTICE_ENVIRONMENT
+        value: production
+      - key: VIGILATTICE_LOG_LEVEL
+        value: INFO
+      - key: VIGILATTICE_CORS_ORIGINS
+        value: '["https://vigilattice-itulsi.onrender.com"]'
+      - key: VIGILATTICE_RUN_DATABASE_PATH
+        value: /tmp/vigilattice.db
+    buildFilter:
+      paths:
+        - backend/**/*
+        - render.yaml
+
+  - type: web
+    name: vigilattice-itulsi
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://vigilattice-api-itulsi.onrender.com/api/v1
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=()
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    buildFilter:
+      paths:
+        - frontend/**/*
+        - render.yaml
