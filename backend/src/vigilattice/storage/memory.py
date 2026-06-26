@@ -4,6 +4,7 @@ from threading import RLock
 
 from vigilattice.models.analytics import AgentAnalytics, BenchmarkAnalytics
 from vigilattice.models.batch import BenchmarkBatch
+from vigilattice.models.regression import RegressionBaseline
 from vigilattice.models.run import EvaluationRun
 
 
@@ -11,6 +12,7 @@ class InMemoryRunRepository:
     def __init__(self) -> None:
         self._runs: dict[str, EvaluationRun] = {}
         self._batches: dict[str, BenchmarkBatch] = {}
+        self._baselines: dict[str, RegressionBaseline] = {}
         self._lock = RLock()
 
     def save(self, run: EvaluationRun) -> EvaluationRun:
@@ -47,10 +49,21 @@ class InMemoryRunRepository:
                 reverse=True,
             )
 
+    def save_baseline(
+        self,
+        baseline: RegressionBaseline,
+    ) -> RegressionBaseline:
+        with self._lock:
+            self._baselines[baseline.agent] = baseline
+        return baseline
+
+    def get_baseline(self, agent: str) -> RegressionBaseline | None:
+        with self._lock:
+            return self._baselines.get(agent)
+
     def analytics(self) -> BenchmarkAnalytics:
         runs = self.list()
         grouped: dict[str, list[EvaluationRun]] = {}
-
         for run in runs:
             grouped.setdefault(run.agent, []).append(run)
 
@@ -62,7 +75,6 @@ class InMemoryRunRepository:
 
         total_runs = len(runs)
         passed_runs = sum(run.report.passed for run in runs)
-
         return BenchmarkAnalytics(
             total_scenarios=len({run.scenario_id for run in runs}),
             total_runs=total_runs,
@@ -83,7 +95,6 @@ class InMemoryRunRepository:
     ) -> AgentAnalytics:
         total_runs = len(runs)
         passed_runs = sum(run.report.passed for run in runs)
-
         return AgentAnalytics(
             agent=agent,
             total_runs=total_runs,

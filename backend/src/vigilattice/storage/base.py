@@ -4,6 +4,7 @@ from typing import Protocol
 
 from vigilattice.models.analytics import BenchmarkAnalytics
 from vigilattice.models.batch import BenchmarkBatch
+from vigilattice.models.regression import RegressionBaseline
 from vigilattice.models.run import EvaluationRun
 
 
@@ -28,3 +29,12 @@ class RunRepository(Protocol):
 
     def list_batches(self) -> list[BenchmarkBatch]:
         """Return benchmark batches in reverse chronological order."""
+
+    def save_baseline(
+        self,
+        baseline: RegressionBaseline,
+    ) -> RegressionBaseline:
+        """Persist the current regression baseline for an agent."""
+
+    def get_baseline(self, agent: str) -> RegressionBaseline | None:
+        """Return the current regression baseline for an agent."""
