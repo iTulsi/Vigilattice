@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vigilattice-api"
-version = "0.1.0"
+version = "1.0.0"
 description = "Adversarial evaluation infrastructure for autonomous AI agents"
 requires-python = ">=3.11,<3.15"
 dependencies = [
