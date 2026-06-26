@@ -958,3 +958,459 @@ progress::-moz-progress-bar {
     padding: 30px;
   }
 }
+
+/* Regression comparison dashboard */
+
+.regression-panel {
+  margin-top: 18px;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.regression-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  align-items: flex-start;
+}
+
+.regression-heading h3 {
+  margin: 7px 0 8px;
+  font-size: 1.08rem;
+}
+
+.regression-heading > div:first-child > p:last-child {
+  margin: 0;
+  color: #7e838f;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.regression-heading > div:first-child strong {
+  color: #c7c2f8;
+  font-family: ui-monospace, monospace;
+}
+
+.baseline-identity {
+  display: grid;
+  min-width: 220px;
+  gap: 4px;
+  padding: 13px 15px;
+  border: 1px solid #2d3038;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.baseline-identity small {
+  color: #666b77;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.baseline-identity strong {
+  color: #dedbe9;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+}
+
+.baseline-identity span {
+  color: #737884;
+  font-size: 0.67rem;
+}
+
+.regression-error {
+  margin-top: 17px;
+  padding: 11px 13px;
+  border: 1px solid rgba(255, 123, 141, 0.26);
+  border-radius: 8px;
+  color: #ff9aa8;
+  background: rgba(255, 123, 141, 0.06);
+  font-size: 0.74rem;
+}
+
+.regression-controls {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.65fr) minmax(160px, 0.65fr) 1.35fr;
+  gap: 14px;
+  align-items: end;
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid #242730;
+}
+
+.regression-controls > label {
+  color: #767b87;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.regression-controls > label > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+  color: #676c78;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.regression-controls input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid #30343e;
+  border-radius: 8px;
+  color: #f4f5f8;
+  background: #111319;
+}
+
+.regression-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.secondary-button {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid #413c5a;
+  border-radius: 9px;
+  color: #bcb5f8;
+  background: rgba(169, 158, 255, 0.045);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.secondary-button:hover:not(:disabled) {
+  border-color: #756aaf;
+  color: #dfdbff;
+}
+
+.secondary-button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.primary-button.compact {
+  padding: 11px 13px;
+  font-size: 0.74rem;
+}
+
+.baseline-empty {
+  display: grid;
+  gap: 5px;
+  margin-top: 18px;
+  padding: 15px;
+  border: 1px dashed #333641;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.baseline-empty strong {
+  color: #bfc2ca;
+  font-size: 0.78rem;
+}
+
+.baseline-empty span {
+  color: #6f7480;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.regression-results {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid #242730;
+}
+
+.regression-verdict {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  padding: 18px;
+  border-radius: 11px;
+}
+
+.regression-verdict.regression-passed {
+  border: 1px solid rgba(113, 236, 170, 0.24);
+  background:
+    linear-gradient(100deg, rgba(113, 236, 170, 0.09), transparent 62%),
+    rgba(113, 236, 170, 0.018);
+}
+
+.regression-verdict.regression-failed {
+  border: 1px solid rgba(255, 123, 141, 0.26);
+  background:
+    linear-gradient(100deg, rgba(255, 123, 141, 0.09), transparent 62%),
+    rgba(255, 123, 141, 0.018);
+}
+
+.regression-verdict > div:first-child {
+  display: grid;
+  gap: 5px;
+}
+
+.regression-verdict small {
+  color: #747985;
+  font-size: 0.62rem;
+  font-weight: 850;
+  letter-spacing: 0.13em;
+}
+
+.regression-verdict strong {
+  font-size: 1.05rem;
+}
+
+.regression-passed strong {
+  color: #83edb4;
+}
+
+.regression-failed strong {
+  color: #ff8999;
+}
+
+.regression-verdict span {
+  color: #747985;
+  font-family: ui-monospace, monospace;
+  font-size: 0.68rem;
+}
+
+.regression-export-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.regression-export-actions a {
+  padding: 8px 10px;
+  border: 1px solid #3a3d47;
+  border-radius: 7px;
+  color: #a9a0ef;
+  background: rgba(255, 255, 255, 0.018);
+  font-size: 0.68rem;
+  font-weight: 780;
+  text-decoration: none;
+}
+
+.regression-export-actions a:hover {
+  border-color: #6f64c8;
+  color: #ded9ff;
+}
+
+.regression-deltas {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  margin-top: 14px;
+  border: 1px solid #272a32;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.delta-metric {
+  padding: 14px;
+  border-right: 1px solid #272a32;
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.delta-metric:last-child {
+  border-right: 0;
+}
+
+.delta-metric span {
+  display: block;
+  color: #6f7480;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.delta-metric strong {
+  display: block;
+  margin-top: 7px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.92rem;
+}
+
+.delta-positive {
+  color: #70e7aa !important;
+}
+
+.delta-negative {
+  color: #ff8192 !important;
+}
+
+.delta-neutral {
+  color: #a2a6b0 !important;
+}
+
+.regression-reasons {
+  margin-top: 14px;
+  padding: 15px;
+  border: 1px solid rgba(255, 123, 141, 0.2);
+  border-radius: 9px;
+  background: rgba(255, 123, 141, 0.035);
+}
+
+.regression-reasons ul {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: #d6969f;
+  font-size: 0.73rem;
+}
+
+.regression-table {
+  margin-top: 16px;
+  overflow-x: auto;
+}
+
+.regression-row {
+  display: grid;
+  grid-template-columns:
+    minmax(230px, 1.65fr) minmax(110px, 0.8fr)
+    repeat(3, minmax(80px, 0.55fr)) minmax(125px, 0.9fr);
+  gap: 13px;
+  align-items: center;
+  min-width: 850px;
+  padding: 13px 9px;
+  border-top: 1px solid #242730;
+  color: #999da8;
+  font-size: 0.75rem;
+}
+
+.regression-row-header {
+  color: #636874;
+  font-size: 0.64rem;
+  font-weight: 850;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.regression-scenario {
+  display: grid;
+  gap: 4px;
+}
+
+.regression-scenario strong {
+  color: #dedfe5;
+  font-size: 0.76rem;
+}
+
+.regression-scenario small {
+  color: #606570;
+  font-family: ui-monospace, monospace;
+  font-size: 0.63rem;
+}
+
+.regression-status {
+  display: inline-block;
+  width: fit-content;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 0.62rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.status-new_failure,
+.status-missing {
+  color: #ff8393;
+  border: 1px solid rgba(255, 123, 141, 0.26);
+  background: rgba(255, 123, 141, 0.065);
+}
+
+.status-recovered {
+  color: #74e9ac;
+  border: 1px solid rgba(113, 236, 170, 0.25);
+  background: rgba(113, 236, 170, 0.06);
+}
+
+.status-unchanged_pass {
+  color: #9bbfaa;
+  border: 1px solid rgba(113, 236, 170, 0.13);
+  background: rgba(113, 236, 170, 0.025);
+}
+
+.status-unchanged_fail {
+  color: #c98c94;
+  border: 1px solid rgba(255, 123, 141, 0.13);
+  background: rgba(255, 123, 141, 0.025);
+}
+
+.status-new_scenario {
+  color: #b4abfb;
+  border: 1px solid rgba(169, 158, 255, 0.23);
+  background: rgba(169, 158, 255, 0.055);
+}
+
+.risk-change {
+  color: #777c88;
+  font-family: ui-monospace, monospace;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1000px) {
+  .regression-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .regression-actions {
+    grid-column: 1 / -1;
+  }
+
+  .regression-deltas {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .regression-heading,
+  .regression-verdict {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .baseline-identity {
+    width: 100%;
+  }
+
+  .regression-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .regression-actions {
+    grid-column: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .regression-export-actions {
+    width: 100%;
+  }
+
+  .regression-export-actions a {
+    flex: 1;
+    text-align: center;
+  }
+
+  .regression-deltas {
+    grid-template-columns: 1fr;
+  }
+
+  .delta-metric {
+    border-right: 0;
+    border-bottom: 1px solid #272a32;
+  }
+
+  .delta-metric:last-child {
+    border-bottom: 0;
+  }
+}

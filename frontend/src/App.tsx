@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { api } from "./api";
+import { RegressionPanel } from "./RegressionPanel";
 import type {
   BenchmarkAnalytics,
   BenchmarkBatch,
@@ -610,6 +611,8 @@ function BatchView({
               value={String(activeBatch.summary.critical_runs)}
             />
           </section>
+
+          <RegressionPanel batch={activeBatch} />
 
           <section className="batch-workspace">
             <article className="card results-card">
