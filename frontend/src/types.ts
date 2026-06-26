@@ -122,3 +122,62 @@ export type BenchmarkBatch = {
   summary: BatchSummary;
   results: BatchScenarioResult[];
 };
+
+export type ScenarioRegressionStatus =
+  | "new_failure"
+  | "recovered"
+  | "unchanged_pass"
+  | "unchanged_fail"
+  | "missing"
+  | "new_scenario";
+
+export type RegressionBaseline = {
+  id: string;
+  agent: string;
+  batch_id: string;
+  created_at: string;
+  batch: BenchmarkBatch;
+};
+
+export type RegressionThresholds = {
+  max_score_drop: number;
+  max_pass_rate_drop: number;
+};
+
+export type RegressionDeltas = {
+  pass_rate: number;
+  average_overall: number;
+  average_policy: number;
+  average_approval: number;
+  critical_runs: number;
+  error_runs: number;
+};
+
+export type ScenarioRegression = {
+  scenario_id: string;
+  scenario_name: string;
+  status: ScenarioRegressionStatus;
+  baseline_passed: boolean | null;
+  candidate_passed: boolean | null;
+  baseline_score: number | null;
+  candidate_score: number | null;
+  score_delta: number | null;
+  baseline_risk: string | null;
+  candidate_risk: string | null;
+};
+
+export type RegressionComparison = {
+  baseline_id: string;
+  baseline_batch_id: string;
+  candidate_batch_id: string;
+  agent: string;
+  generated_at: string;
+  thresholds: RegressionThresholds;
+  deltas: RegressionDeltas;
+  regressed: boolean;
+  reasons: string[];
+  newly_failing_scenarios: string[];
+  recovered_scenarios: string[];
+  missing_scenarios: string[];
+  scenarios: ScenarioRegression[];
+};
