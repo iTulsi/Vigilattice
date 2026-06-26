@@ -36,7 +36,7 @@ jobs:
 
       - name: Upload regression report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: vigilattice-regression-gate-report
           path: backend/artifacts/regression-gate-report.json
