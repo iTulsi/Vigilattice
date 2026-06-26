@@ -7,8 +7,15 @@ import type {
   Scenario,
 } from "./types";
 
-export const API_BASE =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api/v1";
+const configuredApiBase = import.meta.env.VITE_API_BASE_URL?.trim();
+const fallbackApiBase = import.meta.env.PROD
+  ? "/api/v1"
+  : "http://localhost:8000/api/v1";
+
+export const API_BASE = (configuredApiBase || fallbackApiBase).replace(
+  /\/+$/,
+  "",
+);
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const headers = new Headers(options?.headers);
