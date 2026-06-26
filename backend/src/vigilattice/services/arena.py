@@ -9,6 +9,14 @@ from vigilattice.models.batch import (
     BatchSummary,
     BenchmarkBatch,
 )
+from vigilattice.models.regression import (
+    RegressionBaseline,
+    RegressionComparison,
+    RegressionDeltas,
+    RegressionThresholds,
+    ScenarioRegression,
+    ScenarioRegressionStatus,
+)
 from vigilattice.models.run import EvaluationRun
 from vigilattice.models.scenario import ScenarioSpec, ScenarioSummary
 from vigilattice.scenarios.loader import ScenarioRegistry
@@ -125,6 +133,189 @@ class ArenaService:
     def get_batch(self, batch_id: str) -> BenchmarkBatch | None:
         return self.runs.get_batch(batch_id)
 
+    def set_regression_baseline(
+        self,
+        batch_id: str,
+    ) -> RegressionBaseline:
+        batch = self.get_batch(batch_id)
+        if batch is None:
+            raise KeyError(f"Batch '{batch_id}' was not found")
+        if batch.summary.completed_runs == 0:
+            raise ValueError("A baseline must contain completed evaluations")
+        if batch.summary.error_runs > 0:
+            raise ValueError("A baseline cannot contain scenario execution errors")
+
+        baseline = RegressionBaseline(
+            agent=batch.agent,
+            batch_id=batch.id,
+            batch=batch.model_copy(deep=True),
+        )
+        return self.runs.save_baseline(baseline)
+
+    def get_regression_baseline(
+        self,
+        agent: str,
+    ) -> RegressionBaseline | None:
+        return self.runs.get_baseline(agent)
+
+    def compare_batch_to_baseline(
+        self,
+        batch_id: str,
+        *,
+        max_score_drop: float = 0.0,
+        max_pass_rate_drop: float = 0.0,
+    ) -> RegressionComparison:
+        candidate = self.get_batch(batch_id)
+        if candidate is None:
+            raise KeyError(f"Batch '{batch_id}' was not found")
+
+        baseline = self.get_regression_baseline(candidate.agent)
+        if baseline is None:
+            raise KeyError(f"No regression baseline exists for agent '{candidate.agent}'")
+
+        thresholds = RegressionThresholds(
+            max_score_drop=max_score_drop,
+            max_pass_rate_drop=max_pass_rate_drop,
+        )
+        return self._compare_batches(
+            baseline,
+            candidate,
+            thresholds,
+        )
+
+    @staticmethod
+    def _compare_batches(
+        baseline: RegressionBaseline,
+        candidate: BenchmarkBatch,
+        thresholds: RegressionThresholds,
+    ) -> RegressionComparison:
+        baseline_batch = baseline.batch
+        baseline_results = {result.scenario_id: result for result in baseline_batch.results}
+        candidate_results = {result.scenario_id: result for result in candidate.results}
+
+        scenarios: list[ScenarioRegression] = []
+        newly_failing: list[str] = []
+        recovered: list[str] = []
+        missing: list[str] = []
+
+        for scenario_id in sorted(baseline_results.keys() | candidate_results.keys()):
+            baseline_result = baseline_results.get(scenario_id)
+            candidate_result = candidate_results.get(scenario_id)
+
+            if baseline_result is None and candidate_result is not None:
+                scenario_status = ScenarioRegressionStatus.NEW_SCENARIO
+                scenario_name = candidate_result.scenario_name
+            elif candidate_result is None and baseline_result is not None:
+                scenario_status = ScenarioRegressionStatus.MISSING
+                scenario_name = baseline_result.scenario_name
+                missing.append(scenario_id)
+            else:
+                assert baseline_result is not None
+                assert candidate_result is not None
+                scenario_name = candidate_result.scenario_name
+
+                if baseline_result.passed is True and candidate_result.passed is not True:
+                    scenario_status = ScenarioRegressionStatus.NEW_FAILURE
+                    newly_failing.append(scenario_id)
+                elif baseline_result.passed is not True and candidate_result.passed is True:
+                    scenario_status = ScenarioRegressionStatus.RECOVERED
+                    recovered.append(scenario_id)
+                elif candidate_result.passed is True:
+                    scenario_status = ScenarioRegressionStatus.UNCHANGED_PASS
+                else:
+                    scenario_status = ScenarioRegressionStatus.UNCHANGED_FAIL
+
+            baseline_score = baseline_result.overall_score if baseline_result is not None else None
+            candidate_score = (
+                candidate_result.overall_score if candidate_result is not None else None
+            )
+            score_delta = (
+                round(candidate_score - baseline_score, 2)
+                if baseline_score is not None and candidate_score is not None
+                else None
+            )
+
+            scenarios.append(
+                ScenarioRegression(
+                    scenario_id=scenario_id,
+                    scenario_name=scenario_name,
+                    status=scenario_status,
+                    baseline_passed=(
+                        baseline_result.passed if baseline_result is not None else None
+                    ),
+                    candidate_passed=(
+                        candidate_result.passed if candidate_result is not None else None
+                    ),
+                    baseline_score=baseline_score,
+                    candidate_score=candidate_score,
+                    score_delta=score_delta,
+                    baseline_risk=(
+                        baseline_result.risk_level if baseline_result is not None else None
+                    ),
+                    candidate_risk=(
+                        candidate_result.risk_level if candidate_result is not None else None
+                    ),
+                )
+            )
+
+        deltas = RegressionDeltas(
+            pass_rate=round(
+                candidate.summary.pass_rate - baseline_batch.summary.pass_rate,
+                2,
+            ),
+            average_overall=round(
+                candidate.summary.average_overall - baseline_batch.summary.average_overall,
+                2,
+            ),
+            average_policy=round(
+                candidate.summary.average_policy - baseline_batch.summary.average_policy,
+                2,
+            ),
+            average_approval=round(
+                candidate.summary.average_approval - baseline_batch.summary.average_approval,
+                2,
+            ),
+            critical_runs=(candidate.summary.critical_runs - baseline_batch.summary.critical_runs),
+            error_runs=(candidate.summary.error_runs - baseline_batch.summary.error_runs),
+        )
+
+        reasons: list[str] = []
+        if newly_failing:
+            reasons.append(f"{len(newly_failing)} scenario(s) newly failed")
+        if missing:
+            reasons.append(f"{len(missing)} baseline scenario(s) are missing")
+        if deltas.pass_rate < -thresholds.max_pass_rate_drop:
+            reasons.append(f"Pass rate dropped by {abs(deltas.pass_rate):.2f} points")
+
+        score_metrics = (
+            ("Overall score", deltas.average_overall),
+            ("Policy score", deltas.average_policy),
+            ("Approval score", deltas.average_approval),
+        )
+        for label, delta in score_metrics:
+            if delta < -thresholds.max_score_drop:
+                reasons.append(f"{label} dropped by {abs(delta):.2f} points")
+
+        if deltas.critical_runs > 0:
+            reasons.append(f"Critical-risk run count increased by {deltas.critical_runs}")
+        if deltas.error_runs > 0:
+            reasons.append(f"Scenario execution error count increased by {deltas.error_runs}")
+
+        return RegressionComparison(
+            baseline_id=baseline.id,
+            baseline_batch_id=baseline.batch_id,
+            candidate_batch_id=candidate.id,
+            agent=candidate.agent,
+            thresholds=thresholds,
+            deltas=deltas,
+            regressed=bool(reasons),
+            reasons=reasons,
+            newly_failing_scenarios=newly_failing,
+            recovered_scenarios=recovered,
+            missing_scenarios=missing,
+            scenarios=scenarios,
+        )
+
     def _get_agent(self, agent_name: str) -> AgentAdapter:
         agent = self.agents.get(agent_name)
         if agent is None:
@@ -157,7 +348,10 @@ class ArenaService:
             error_runs=error_runs,
             passed_runs=passed_runs,
             failed_runs=failed_runs,
-            pass_rate=ArenaService._percentage(passed_runs, total_scenarios),
+            pass_rate=ArenaService._percentage(
+                passed_runs,
+                total_scenarios,
+            ),
             average_overall=ArenaService._average(
                 [result.overall_score for result in completed if result.overall_score is not None]
             ),

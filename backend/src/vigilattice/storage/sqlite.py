@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from threading import RLock
 
 from vigilattice.models.analytics import AgentAnalytics, BenchmarkAnalytics
 from vigilattice.models.batch import BenchmarkBatch
+from vigilattice.models.regression import RegressionBaseline
 from vigilattice.models.run import EvaluationRun
 
 
@@ -18,11 +21,17 @@ class SQLiteRunRepository:
         self._lock = RLock()
         self._initialize()
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
         connection = sqlite3.connect(self.database_path, timeout=10)
         connection.row_factory = sqlite3.Row
         connection.execute("PRAGMA busy_timeout = 10000")
-        return connection
+
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     def _initialize(self) -> None:
         with self._connect() as connection:
@@ -78,6 +87,17 @@ class SQLiteRunRepository:
                 ON benchmark_batches(started_at DESC)
                 """
             )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS regression_baselines (
+                    agent TEXT PRIMARY KEY,
+                    id TEXT NOT NULL,
+                    batch_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    payload_json TEXT NOT NULL
+                )
+                """
+            )
 
     def save(self, run: EvaluationRun) -> EvaluationRun:
         with self._lock, self._connect() as connection:
@@ -126,7 +146,6 @@ class SQLiteRunRepository:
                 """,
                 (run_id,),
             ).fetchone()
-
         if row is None:
             return None
         return EvaluationRun.model_validate_json(row["payload_json"])
@@ -140,7 +159,6 @@ class SQLiteRunRepository:
                 ORDER BY created_at DESC, id DESC
                 """
             ).fetchall()
-
         return [EvaluationRun.model_validate_json(row["payload_json"]) for row in rows]
 
     def save_batch(self, batch: BenchmarkBatch) -> BenchmarkBatch:
@@ -199,6 +217,46 @@ class SQLiteRunRepository:
             ).fetchall()
         return [BenchmarkBatch.model_validate_json(row["payload_json"]) for row in rows]
 
+    def save_baseline(
+        self,
+        baseline: RegressionBaseline,
+    ) -> RegressionBaseline:
+        with self._lock, self._connect() as connection:
+            connection.execute(
+                """
+                INSERT OR REPLACE INTO regression_baselines (
+                    agent,
+                    id,
+                    batch_id,
+                    created_at,
+                    payload_json
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    baseline.agent,
+                    baseline.id,
+                    baseline.batch_id,
+                    baseline.created_at.isoformat(),
+                    baseline.model_dump_json(),
+                ),
+            )
+        return baseline
+
+    def get_baseline(self, agent: str) -> RegressionBaseline | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT payload_json
+                FROM regression_baselines
+                WHERE agent = ?
+                """,
+                (agent,),
+            ).fetchone()
+        if row is None:
+            return None
+        return RegressionBaseline.model_validate_json(row["payload_json"])
+
     def analytics(self) -> BenchmarkAnalytics:
         with self._connect() as connection:
             summary = connection.execute(
@@ -211,13 +269,17 @@ class SQLiteRunRepository:
                     COALESCE(AVG(policy_score), 0) AS average_policy,
                     COALESCE(AVG(approval_score), 0) AS average_approval,
                     COALESCE(
-                        SUM(CASE WHEN risk_level = 'critical' THEN 1 ELSE 0 END),
+                        SUM(
+                            CASE
+                                WHEN risk_level = 'critical' THEN 1
+                                ELSE 0
+                            END
+                        ),
                         0
                     ) AS critical_runs
                 FROM evaluation_runs
                 """
             ).fetchone()
-
             agent_rows = connection.execute(
                 """
                 SELECT
@@ -228,7 +290,12 @@ class SQLiteRunRepository:
                     COALESCE(AVG(policy_score), 0) AS average_policy,
                     COALESCE(AVG(approval_score), 0) AS average_approval,
                     COALESCE(
-                        SUM(CASE WHEN risk_level = 'critical' THEN 1 ELSE 0 END),
+                        SUM(
+                            CASE
+                                WHEN risk_level = 'critical' THEN 1
+                                ELSE 0
+                            END
+                        ),
                         0
                     ) AS critical_runs
                 FROM evaluation_runs
@@ -239,7 +306,6 @@ class SQLiteRunRepository:
 
         total_runs = int(summary["total_runs"])
         passed_runs = int(summary["passed_runs"])
-
         agents = []
         for row in agent_rows:
             agent_total = int(row["total_runs"])
@@ -251,9 +317,18 @@ class SQLiteRunRepository:
                     passed_runs=agent_passed,
                     failed_runs=agent_total - agent_passed,
                     pass_rate=self._percentage(agent_passed, agent_total),
-                    average_overall=round(float(row["average_overall"]), 2),
-                    average_policy=round(float(row["average_policy"]), 2),
-                    average_approval=round(float(row["average_approval"]), 2),
+                    average_overall=round(
+                        float(row["average_overall"]),
+                        2,
+                    ),
+                    average_policy=round(
+                        float(row["average_policy"]),
+                        2,
+                    ),
+                    average_approval=round(
+                        float(row["average_approval"]),
+                        2,
+                    ),
                     critical_runs=int(row["critical_runs"]),
                 )
             )
