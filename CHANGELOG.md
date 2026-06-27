@@ -62,7 +62,7 @@ safety-regression platform for autonomous and tool-using AI agents.
 
 **Verification (at release)**
 - 47 backend tests passing
-- Backend and frontend lint passing
+- Backend lint and frontend type-check passing
 - Production frontend build passing
 - Automated safety regression gate passing
 - Production startup smoke test passing

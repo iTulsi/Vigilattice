@@ -86,7 +86,7 @@ Vigilattice/
 │   └── src/vigilattice/
 │       ├── agents/           Agent adapters (mock-safe, mock-unsafe, LLM)
 │       ├── api/              FastAPI route handlers
-│       ├── graders/          Deterministic policy / approval / overall graders
+│       ├── evaluation/       Deterministic safety evaluation engine
 │       ├── models/           Pydantic domain and API models
 │       ├── scenarios/
 │       │   └── builtin/      Built-in adversarial YAML scenarios ← add yours here
@@ -106,15 +106,16 @@ Before opening a pull request, run all of the following locally and make sure
 each command exits cleanly:
 
 ```bash
-make test             # 47+ backend pytest tests
-make lint             # Ruff (Python) + ESLint (TypeScript)
+make test             # backend pytest suite
+make lint             # Ruff (Python) + TypeScript type-checking
 make build            # Python compile-check + frontend production build
 make regression-gate  # deterministic safety regression against mock-safe baseline
 ```
 
-If your change adds a new scenario or modifies grader logic, also verify the
-regression-gate report at `/tmp/vigilattice-regression-gate-report.json` shows
-no unexpected regressions before and after your change.
+If your change adds a new scenario, the regression gate is expected to report
+that the scenario has no approved baseline until a maintainer reviews and adds
+that baseline entry. Confirm there are no other unexpected regression reasons
+in `/tmp/vigilattice-regression-gate-report.json`.
 
 ---
 
@@ -130,9 +131,13 @@ field-by-field reference and an annotated template.
 **Quick steps:**
 
 1. Create `backend/src/vigilattice/scenarios/builtin/<your-id>.yaml`.
-2. Run `make api` and verify your scenario appears in
+2. Add matching safe and unsafe trace fixtures in
+   `backend/src/vigilattice/agents/mock.py`. Register the scenario ID in both
+   mock agents' `builders` dictionaries.
+3. Add tests for scenario loading and the expected safe and unsafe results.
+4. Run `make api` and verify your scenario appears in
    `GET /api/v1/scenarios`.
-3. Run a safe and unsafe evaluation against it:
+5. Run a safe and unsafe evaluation against it:
    ```bash
    curl -X POST http://localhost:8000/api/v1/runs \
      -H 'Content-Type: application/json' \
@@ -142,14 +147,12 @@ field-by-field reference and an annotated template.
      -H 'Content-Type: application/json' \
      -d '{"scenario_id": "<your-id>", "agent": "mock-unsafe"}'
    ```
-4. Confirm `mock-safe` passes and `mock-unsafe` fails with the expected risk
-   level.
-5. Run `make regression-gate` to verify the existing baseline is unaffected.
+6. Confirm `mock-safe` passes and `mock-unsafe` fails as intended.
+7. Run the PR checklist and document the expected unbaselined-scenario result
+   in the PR description.
 
-New scenarios introduced without an approved baseline are flagged by the CI
-safety gate. If you intend the scenario to become part of the gate, note that
-in your PR description and the maintainer will promote the baseline after
-review.
+Do not update `backend/baselines/mock-safe.json` until a maintainer has reviewed
+and approved the new scenario's expected result.
 
 ---
 
@@ -159,9 +162,10 @@ Agent adapters live in `backend/src/vigilattice/agents/`. Each adapter must
 implement the `AgentAdapter` interface (see `agents/base.py`) and return a
 structured response with tool events that the graders can evaluate.
 
-Register your adapter by adding it to the adapter registry in
-`agents/__init__.py` under a new string key. That key becomes the value
-accepted by `POST /api/v1/runs` in the `"agent"` field.
+Register the adapter in the `agents` dictionary created by
+`get_arena_service()` in `backend/src/vigilattice/services/container.py`. The
+adapter's `name` becomes the value accepted by `POST /api/v1/runs` in the
+`"agent"` field.
 
 The deterministic `mock-safe` and `mock-unsafe` adapters are the reference
 implementations to read first.
@@ -193,10 +197,11 @@ the changed logic path.
 `make format` before committing. Configuration lives in
 `backend/pyproject.toml`.
 
-**TypeScript / React** — ESLint with the project's config. Run
+**TypeScript / React** — `npm run lint` currently runs the TypeScript compiler
+with `tsc --noEmit`; formatting is handled by Prettier. Run
 `cd frontend && npm run lint` and `npm run format`.
 
-No new `# type: ignore` or `eslint-disable` comments without an accompanying
+No new `# type: ignore` or `@ts-ignore` suppressions without an accompanying
 explanation comment.
 
 ---
